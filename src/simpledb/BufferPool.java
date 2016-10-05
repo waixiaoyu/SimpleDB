@@ -2,6 +2,7 @@ package simpledb;
 
 import java.io.*;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.ArrayList;
 
 /**
@@ -30,6 +31,8 @@ public class BufferPool {
 
     Page buffer[];
 
+    ReplacePolicyList<Integer> listReplacePolicy;
+
     /**
      * Constructor.
      *
@@ -39,6 +42,7 @@ public class BufferPool {
     public BufferPool(int numPages) {
         //IMPLEMENT THIS
         buffer = new HeapPage[numPages];
+        listReplacePolicy = new ReplacePolicyList<Integer>(numPages);
     }
 
     /**
@@ -68,19 +72,26 @@ public class BufferPool {
         int nGetPageIndex = getBufferIndex((HeapPageId) pid);
         if (nGetPageIndex != -1) {
             Page page = buffer[nGetPageIndex];
+            page.pin();
             if (page.isDirty() == null || page.isDirty() == tid) {
-                pinPage(nGetPageIndex);
+                ++_numhits;
                 return page;
             }
         }
         //if we did not find the page, or the page is dirty, we should use the DbFile.readPage method to access pages of a DbFile. 
         //And add this page into the page array.
+        ++_nummisses;
         HeapFile hFile = (HeapFile) Database.getCatalog().getDbFile(pid.tableid());
         Page pNewPage = hFile.readPage(pid);
+        pNewPage.pin();
         if (nCurrentNumPages == buffer.length) {
-            buffer[evictPage()] = pNewPage;
+            int nEvictIndex = evictPage();
+            buffer[nEvictIndex] = pNewPage;
+            listReplacePolicy.access(nEvictIndex);
         } else {
             buffer[nCurrentNumPages] = pNewPage;
+            listReplacePolicy.addFirst(nCurrentNumPages);
+            ++nCurrentNumPages;
         }
         return pNewPage;
     }
@@ -95,6 +106,7 @@ public class BufferPool {
     public void pinPage(int index) {
         //IMPLEMENT THIS
         buffer[index].pin();
+        listReplacePolicy.access(index);
     }
 
     /**
@@ -116,8 +128,10 @@ public class BufferPool {
             throw new DbException("pin count is equals to 0.");
         } else {
             buffer[index].unpin();
+            listReplacePolicy.access(index);
             if (dirty) {
-                buffer[index].markDirty(true, tid);
+                buffer[index].markDirty(dirty, tid);
+                flushPage(buffer[index].id());
             }
         }
     }
@@ -237,21 +251,35 @@ public class BufferPool {
 
     /**
      * Discards a page from the buffer pool. Return index of discarded page
+     * 
+     * @throws IOException
      */
-    private synchronized int evictPage() throws DbException {
+    private synchronized int evictPage() throws DbException, IOException {
         //IMPLEMENT THIS
+        int nEvictIndex = 0;
         switch (replace_policy) {
         case DEFAULT_POLICY:
-            buffer[0] = null;
-            return 0;
-        case LRU_POLICY:
             break;
         case MRU_POLICY:
-            break;
+            for (int i = 0; i < listReplacePolicy.size(); i++) {
+                nEvictIndex = listReplacePolicy.get(i);
+                if (buffer[nEvictIndex].pin_count() == 0 || buffer[nEvictIndex].isDirty() != null) {
+                    return nEvictIndex;
+                }
+            }
+            throw new DbException("Buffer pool is full and list of LRU/MRU candidates is empty!");
+        case LRU_POLICY:
+            for (int i = listReplacePolicy.size() - 1; i >= 0; i--) {
+                nEvictIndex = listReplacePolicy.get(i);
+                if (buffer[nEvictIndex].pin_count() == 0 || buffer[nEvictIndex].isDirty() != null) {
+                    return nEvictIndex;
+                }
+            }
+            throw new DbException("Buffer pool is full and list of LRU/MRU candidates is empty!");
         default:
             throw new DbException("no such replace policy :" + replace_policy);
         }
-        return 0;
+        return nEvictIndex;
     }
 
     public int getNumHits() {
