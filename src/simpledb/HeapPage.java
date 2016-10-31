@@ -46,7 +46,8 @@ public class HeapPage implements Page {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(data));
 
         // allocate and read the header slots of this page
-        header = new int[(numSlots / 32) + 1];
+        header = new int[(int) Math.ceil(((float) numSlots / 32))];
+
         for (int i = 0; i < header.length; i++) {
             header[i] = dis.readInt();
             //System.out.println("HEADER READ["+i+"]="+header[i]);

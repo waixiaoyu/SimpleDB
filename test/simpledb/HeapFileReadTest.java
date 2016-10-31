@@ -62,16 +62,17 @@ public class HeapFileReadTest {
 
         // NOTE(ghuo): we try not to dig too deeply into the Page API here; we
         // rely on HeapPageTest for that. perform some basic checks.
-        // assertEquals(492, page.getNumEmptySlots());
-        //Amelie: changed the way the number of slots (header are part of 4096 now) are kept for better joins, so the number of empty slots is decreased by 8
-        assertEquals(484, page.getNumEmptySlots());
+	// assertEquals(492, page.getNumEmptySlots());
+	//Amelie: changed the way the number of slots (header are part of 4096 now) are kept for better joins, so the number of empty slots is decreased by 8
+	assertEquals(484, page.getNumEmptySlots());
         assertTrue(page.getSlot(1));
         assertFalse(page.getSlot(20));
     }
 
     @Test
     public void testIteratorBasic() throws Exception {
-        HeapFile smallFile = SystemTestUtil.createRandomHeapFile(2, 3, null, null);
+        HeapFile smallFile = SystemTestUtil.createRandomHeapFile(2, 3, null,
+                null);
 
         DbFileIterator it = smallFile.iterator(tid);
         // Not open yet
@@ -96,7 +97,8 @@ public class HeapFileReadTest {
     public void testIteratorClose() throws Exception {
         // make more than 1 page. Previous closed iterator would start fetching
         // from page 1.
-        HeapFile twoPageFile = SystemTestUtil.createRandomHeapFile(2, 520, null, null);
+        HeapFile twoPageFile = SystemTestUtil.createRandomHeapFile(2, 520,
+                null, null);
 
         DbFileIterator it = twoPageFile.iterator(tid);
         it.open();

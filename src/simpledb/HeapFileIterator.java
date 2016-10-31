@@ -9,7 +9,7 @@ public class HeapFileIterator implements DbFileIterator {
     private HeapFile _file;
     private int _currentPageId;
     private Page _currentPage;
-    private int _pagesRead = 0;
+    private int _pagesRead =0;
     private int _numPages;
     private Iterator<Tuple> _tupleIterator;
 
@@ -18,74 +18,79 @@ public class HeapFileIterator implements DbFileIterator {
         _file = file;
         _currentPageId = 0;
         _numPages = _file.numPages();
-        //			System.out.println("numpages "+_numPages);
+	//			System.out.println("numpages "+_numPages);
     }
 
-    public void open() throws DbException, TransactionAbortedException, IOException {
-
+    public void open()
+        throws DbException, TransactionAbortedException, IOException {
+	
         _currentPage = readPage(_currentPageId++);
-        _pagesRead++;
+	 _pagesRead++;
         _tupleIterator = _currentPage.iterator();
     }
 
-    public boolean hasNext() throws DbException, TransactionAbortedException, IOException {
-        //System.out.println("hf has next: " + _currentPageId +_numPages);
-        if (_tupleIterator == null)
-            return false;
-        if (_tupleIterator.hasNext())
-            return true;
+    public boolean hasNext()
+        throws DbException, TransactionAbortedException, IOException {
+	//System.out.println("hf has next: " + _currentPageId +_numPages);
+        if (_tupleIterator == null) return false;
+	if (_tupleIterator.hasNext()) return true;
 
         // If we have more pages
-        //System.out.println(_currentPageId+"   llllll   "+_numPages);
+	//System.out.println(_currentPageId+"   llllll   "+_numPages);
         while (_currentPageId < (_numPages)) {
-            _currentPage = readPage(_currentPageId++);
-            _tupleIterator = _currentPage.iterator();
-            if (_tupleIterator.hasNext()) {
-                _pagesRead++;
-                return true;
-            }
-        }
-
+        	_currentPage = readPage(_currentPageId++);
+        	_tupleIterator = _currentPage.iterator();
+        	if (_tupleIterator.hasNext()) {
+		        _pagesRead++;
+        		return true;
+        	}
+        } 
+        
         return false;
     }
 
-    public Tuple next() throws DbException, TransactionAbortedException {
+    public Tuple next()
+        throws DbException, TransactionAbortedException {
         if (_tupleIterator == null) {
             throw new NoSuchElementException("Tuple iterator not opened");
         }
-
+        
         assert (_tupleIterator.hasNext());
         return _tupleIterator.next();
     }
 
-    public Tuple previous() throws DbException, TransactionAbortedException, IOException {
-        //	System.out.println("previous ");
+    public Tuple previous()
+        throws DbException, TransactionAbortedException, IOException {
+	//	System.out.println("previous ");
         if (_tupleIterator == null) {
             throw new NoSuchElementException("Tuple iterator not opened");
         }
-
-        if (((HeapPageIterator) _tupleIterator).hasPrevious()) {
-            return ((HeapPageIterator) _tupleIterator).previous();
-        } else {
-            if (_currentPageId > 1) {
-                //System.out.println("CUURENT PAGEID "+_currentPageId);
-                _currentPageId = _currentPageId - 2;
-                _currentPage = readPage(_currentPageId++);
-                //System.out.println("NOW "+_currentPageId);
-                _pagesRead++;
-                _tupleIterator = _currentPage.iterator();
-                ((HeapPageIterator) _tupleIterator).setLast();
-                if (((HeapPageIterator) _tupleIterator).hasPrevious()) {
-                    return ((HeapPageIterator) _tupleIterator).previous();
-                }
-            } else
-                return null;
-
-        }
-        return null;
+        
+        if (((HeapPageIterator)_tupleIterator).hasPrevious()){
+	    return ((HeapPageIterator)_tupleIterator).previous();
+	}
+	else {
+	    if(_currentPageId > 1) {
+		//System.out.println("CUURENT PAGEID "+_currentPageId);
+		_currentPageId = _currentPageId-2;
+		_currentPage = readPage(_currentPageId++);
+		//System.out.println("NOW "+_currentPageId);
+		_pagesRead++;
+        	_tupleIterator = _currentPage.iterator();
+        	((HeapPageIterator)_tupleIterator).setLast();
+		if (((HeapPageIterator)_tupleIterator).hasPrevious()){
+		    return ((HeapPageIterator)_tupleIterator).previous();
+		}
+	    }
+	    else
+		return null;
+		
+	}
+	return null;
     }
 
-    public void rewind() throws DbException, TransactionAbortedException, IOException {
+    public void rewind()
+        throws DbException, TransactionAbortedException, IOException {
         close();
         open();
     }
@@ -95,21 +100,22 @@ public class HeapFileIterator implements DbFileIterator {
         _tupleIterator = null;
     }
 
-    public int getPagesRead() {
-        return _pagesRead;
+    public int getPagesRead(){
+	return _pagesRead;
     }
 
-    private Page readPage(int pageNumber) throws DbException, TransactionAbortedException, IOException {
+    private Page readPage(int pageNumber) 
+    	throws DbException, TransactionAbortedException, IOException {
         // File == table because we do one file per table
-        //	System.out.println("readpage:"+_file.id()+" page:"+pageNumber);
+	//	System.out.println("readpage:"+_file.id()+" page:"+pageNumber);
         int tableId = _file.id();
         int pageId = pageNumber;
-        //	System.out.println("Page is now "+pageNumber);
+	//	System.out.println("Page is now "+pageNumber);
         HeapPageId pid = new HeapPageId(tableId, pageId);
-        return Database.getBufferPool().getPage(_transactionId, pid, Permissions.READ_ONLY);
+       return Database.getBufferPool().getPage(_transactionId, pid, Permissions.READ_ONLY);
     }
 
-    public Page getCurrentPage() {
-        return _currentPage;
+    public Page getCurrentPage(){
+	return _currentPage;
     }
 }

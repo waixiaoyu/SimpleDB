@@ -16,9 +16,28 @@ import junit.framework.JUnit4TestAdapter;
 public class HeapPageReadTest {
     private HeapPageId pid;
 
-    public static final int[][] EXAMPLE_VALUES = new int[][] { { 31933, 862 }, { 29402, 56883 }, { 1468, 5825 }, { 17876, 52278 }, { 6350, 36090 },
-            { 34784, 43771 }, { 28617, 56874 }, { 19209, 23253 }, { 56462, 24979 }, { 51440, 56685 }, { 3596, 62307 }, { 45569, 2719 }, { 22064, 43575 },
-            { 42812, 44947 }, { 22189, 19724 }, { 33549, 36554 }, { 9086, 53184 }, { 42878, 33394 }, { 62778, 21122 }, { 17197, 16388 } };
+    public static final int[][] EXAMPLE_VALUES = new int[][] {
+        { 31933, 862 },
+        { 29402, 56883 },
+        { 1468, 5825 },
+        { 17876, 52278 },
+        { 6350, 36090 },
+        { 34784, 43771 },
+        { 28617, 56874 },
+        { 19209, 23253 },
+        { 56462, 24979 },
+        { 51440, 56685 },
+        { 3596, 62307 },
+        { 45569, 2719 },
+        { 22064, 43575 },
+        { 42812, 44947 },
+        { 22189, 19724 },
+        { 33549, 36554 },
+        { 9086, 53184 },
+        { 42878, 33394 },
+        { 62778, 21122 },
+        { 17197, 16388 }
+    };
 
     public static final byte[] EXAMPLE_DATA;
     static {
@@ -35,10 +54,10 @@ public class HeapPageReadTest {
         // Convert it to a HeapFile and read in the bytes
         try {
             File temp = File.createTempFile("table", ".dat");
-            //temp.deleteOnExit();
+	    //temp.deleteOnExit();
             HeapFileEncoder.convert(table, temp, BufferPool.PAGE_SIZE, 2);
             EXAMPLE_DATA = TestUtil.readFileBytes(temp.getAbsolutePath());
-
+	  
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -47,8 +66,7 @@ public class HeapPageReadTest {
     /**
      * Set up initial resources for each unit test.
      */
-    @Before
-    public void setUp() throws Exception {
+    @Before public void setUp() throws Exception {
         this.pid = new HeapPageId(-1, -1);
         Database.getCatalog().addTable(new SkeletonFile(-1), Utility.getTupleDesc(2));
     }
@@ -56,8 +74,7 @@ public class HeapPageReadTest {
     /**
      * Unit test for HeapPage.id()
      */
-    @Test
-    public void id() throws Exception {
+    @Test public void id() throws Exception {
         HeapPage page = new HeapPage(pid, EXAMPLE_DATA);
         assertEquals(pid, page.id());
     }
@@ -65,8 +82,7 @@ public class HeapPageReadTest {
     /**
      * Unit test for HeapPage.iterator()
      */
-    @Test
-    public void testIterator() throws Exception {
+    @Test public void testIterator() throws Exception {
         HeapPage page = new HeapPage(pid, EXAMPLE_DATA);
         Iterator<Tuple> it = page.iterator();
 
@@ -85,8 +101,7 @@ public class HeapPageReadTest {
     /**
      * Unit test for HeapPage.isDirty()
      */
-    @Test
-    public void testDirty() throws Exception {
+    @Test public void testDirty() throws Exception {
         TransactionId tid = new TransactionId();
         HeapPage page = new HeapPage(pid, EXAMPLE_DATA);
         page.markDirty(true, tid);
@@ -102,27 +117,25 @@ public class HeapPageReadTest {
     /**
      * Unit test for HeapPage.getNumEmptySlots()
      */
-    @Test
-    public void getNumEmptySlots() throws Exception {
+    @Test public void getNumEmptySlots() throws Exception {
         HeapPage page = new HeapPage(pid, EXAMPLE_DATA);
-        //Amelie: changed the way the number of slots (header are part of 4096 now) are kept for better joins, so the number of empty slots is decreased by 8
-        assertEquals(484, page.getNumEmptySlots());
+	//Amelie: changed the way the number of slots (header are part of 4096 now) are kept for better joins, so the number of empty slots is decreased by 8
+	assertEquals(484, page.getNumEmptySlots());
 
-        // assertEquals(492, page.getNumEmptySlots());
+	// assertEquals(492, page.getNumEmptySlots());
     }
 
     /**
      * Unit test for HeapPage.getSlot()
      */
-    @Test
-    public void getSlot() throws Exception {
+    @Test public void getSlot() throws Exception {
         HeapPage page = new HeapPage(pid, EXAMPLE_DATA);
 
         for (int i = 0; i < 20; ++i)
-            assertTrue(page.getSlot(i));
+	  assertTrue(page.getSlot(i));
 
         for (int i = 20; i < 512; ++i)
-            assertFalse(page.getSlot(i));
+	     assertFalse(page.getSlot(i));
     }
 
     /**
