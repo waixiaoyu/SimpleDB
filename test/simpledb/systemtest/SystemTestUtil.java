@@ -94,8 +94,9 @@ public class SystemTestUtil {
 		return Utility.openHeapFile(columns, temp);
 	}
 
-	static int[] testarray={0,1,1,3,5,7,0,3,3,3,3,5};
-	static int nCount=0;
+	static int[] testarray = { 0, 1, 1, 3, 5, 7, 0, 3, 3, 3, 3, 5 };
+	static int nCount = 0;
+
 	public static File createSortedFileUnopened(int columns, int rows, int maxValue, double duplicateProbability,
 			ArrayList<ArrayList<Integer>> tuples, boolean printTable) throws IOException {
 		if (tuples != null) {
@@ -126,11 +127,10 @@ public class SystemTestUtil {
 					lastSorted = lastSorted + 1 + skipvalue;
 					sortedValue = new Integer(lastSorted);
 
-
 				}
 			}
-			//sortedValue=testarray[nCount];
-			//nCount++;
+			// sortedValue=testarray[nCount];
+			// nCount++;
 			if (printTable) {
 				System.out.print(sortedValue + " : ");
 			}

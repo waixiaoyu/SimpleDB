@@ -152,7 +152,7 @@ public class Join extends AbstractDbIterator {
 	}
 
 	/**
-	 * get outer relation tuple for SNL only (new added function)
+	 * get outer relation tuple for SNL only (new function)
 	 * 
 	 * @throws NoSuchElementException
 	 * @throws DbException
@@ -167,10 +167,98 @@ public class Join extends AbstractDbIterator {
 			_outerRecent = null;
 		}
 	}
-
+	
+	// ------------------------------------PNL----------------------------------------
 	protected Tuple PNL_readNext() throws TransactionAbortedException, DbException {
-		// IMPLEMENT THIS (EXTRA CREDIT ONLY)
+		try {
+			if (_lOuterTuplesOnePage.size() == 0) {
+				readOuterRelationInOnePage();
+			}
+			if (_lInnerTuplesOnePage.size() == 0) {
+				readInnerRelationInOnePage();
+			}
+			// outer tuple stays same, and matches different inner tuples in
+			// following while loop.
+			if (_outerRecent != null) {
+				while (_innerPage.hasNext()) {
+					_innerRecent = _innerPage.next();
+					if (_predicate.filter(_outerRecent, _innerRecent)) {
+						++_numMatches;
+						return joinTuple(_outerRecent, _innerRecent, createDesc(_outerRecent, _innerRecent));
+					}
+				}
+				/**
+				 * if inner page meets end, just reset its iterator for next out
+				 * tuple
+				 */
+				_innerPage = _lInnerTuplesOnePage.iterator();
+
+				if (_outerRelation.hasNext() || _outerPage.hasNext()) {
+					if (_outerPage.hasNext()) {
+						setNextOutRecentTupleInPage();
+						return PNL_readNext();
+					} else {
+						_lOuterTuplesOnePage.clear();
+						_outerRecent = null;
+						_lInnerTuplesOnePage.clear();
+						_innerRecent = null;
+						_innerRelation.rewind();
+						return PNL_readNext();
+					}
+				}
+			} else {
+				// if outer relation does not have more tuple, just return null
+				return null;
+			}
+		} catch (
+
+		IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		return null;
+	}
+
+	/**
+	 * read one page tuples of outer relation once in time for PNL (new
+	 * function)
+	 */
+	List<Tuple> _lOuterTuplesOnePage = new LinkedList<Tuple>();
+	List<Tuple> _lInnerTuplesOnePage = new LinkedList<Tuple>();
+
+	private void readOuterRelationInOnePage()
+			throws NoSuchElementException, DbException, TransactionAbortedException, IOException {
+		HeapFileIterator hfi = (HeapFileIterator) ((SeqScan) _outerRelation).getIterator();
+		Page pCurrent = hfi.getCurrentPage();
+		while (hfi.hasNext()) {
+			if (hfi.getCurrentPage() != pCurrent) {
+				break;
+			}
+			_lOuterTuplesOnePage.add(hfi.next());
+		}
+		_outerPage = _lOuterTuplesOnePage.iterator();
+		setNextOutRecentTupleInPage();
+	}
+
+	private void readInnerRelationInOnePage()
+			throws NoSuchElementException, DbException, TransactionAbortedException, IOException {
+		// actually in this function, reads all inner tuples into the List once
+		// a time, not only one page tuples
+		while (_innerRelation.hasNext()) {
+			_lInnerTuplesOnePage.add(_innerRelation.next());
+		}
+		_innerPage = _lInnerTuplesOnePage.iterator();
+	}
+
+	/**
+	 * set next outer tuple in current page for PNL (new added function )
+	 */
+	private void setNextOutRecentTupleInPage() {
+		if (_outerPage.hasNext()) {
+			_outerRecent = _outerPage.next();
+		} else {
+			_outerRecent = null;
+		}
 	}
 
 	protected Tuple BNL_readNext() throws TransactionAbortedException, DbException {
@@ -178,6 +266,7 @@ public class Join extends AbstractDbIterator {
 		return null;
 	}
 
+	// ------------------------------------------SML----------------------------------------------
 	// used to store the previous number of same tuple
 	private List<Tuple> _lInnerSameTuples = new LinkedList<Tuple>();
 	private Tuple _outerLast = null;
@@ -223,9 +312,10 @@ public class Join extends AbstractDbIterator {
 				while (_innerPage.hasNext()) {
 					Tuple tInnerSameTuple = _innerPage.next();
 					if (_predicate.filter(_outerRecent, tInnerSameTuple)) {
-						//System.out.println(_outerRecent.getField(0) + ":" + tInnerSameTuple.getField(0));
+						// System.out.println(_outerRecent.getField(0) + ":" +
+						// tInnerSameTuple.getField(0));
 						++_numMatches;
-						//System.out.println(_numMatches);
+						// System.out.println(_numMatches);
 						return joinTuple(_outerRecent, tInnerSameTuple, createDesc(_outerRecent, tInnerSameTuple));
 					}
 				}
@@ -305,7 +395,7 @@ public class Join extends AbstractDbIterator {
 	}
 
 	/**
-	 * use 2 old descs to create 1 new desc (new added function)
+	 * use 2 old descs to create 1 new desc (new function)
 	 * 
 	 * @param outer
 	 * @param inner
@@ -347,7 +437,6 @@ public class Join extends AbstractDbIterator {
 		for (int i = 0; i < inner.getTupleDesc().numFields(); i++) {
 			t.setField(i + outer.getTupleDesc().numFields(), inner.getField(i));
 		}
-
 		return t;
 	}
 
